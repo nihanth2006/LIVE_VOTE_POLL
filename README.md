@@ -53,29 +53,29 @@ The application empowers creators to formulate interactive polls with customized
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Participant as Voter (Browser A)
-    actor Audience as Spectator (Browser B)
-    participant GoGin as Go/Gin Backend
-    participant Redis as Redis (In-Memory)
-    participant Mongo as MongoDB
-    participant WS as WebSocket Hub
+    actor Participant as "Voter (Browser A)"
+    actor Audience as "Spectator (Browser B)"
+    participant GoGin as "Go / Gin Backend"
+    participant Redis as "Redis (In-Memory)"
+    participant Mongo as "MongoDB"
+    participant WS as "WebSocket Hub"
 
-    Audience->>GoGin: GET /api/polls/:id/results (Initial State)
-    GoGin-->>Audience: Initial Poll Data & Counts
-    Audience->>WS: Connect ws://.../ws/polls/:id
-    WS->>Redis: Subscribe channel poll:{id}:updates
+    Audience->>GoGin: GET /api/polls/poll_id/results (Initial State)
+    GoGin-->>Audience: Return Poll Data and Counts
+    Audience->>WS: Connect WebSocket stream
+    WS->>Redis: Subscribe to poll channel
 
-    Participant->>GoGin: POST /api/polls/:id/vote {optionId}
-    Note over GoGin: Validate Poll, Status & Option
+    Participant->>GoGin: POST /api/polls/poll_id/vote (option_id)
+    Note over GoGin: Validate Poll Status and Option
     Note over GoGin: Check Duplicate Vote Policy
 
-    GoGin->>Redis: HINCRBY poll:{id}:votes {optionId} 1 (Atomic)
-    Redis-->>GoGin: New Count for Option
+    GoGin->>Redis: Atomic HINCRBY option count (+1)
+    Redis-->>GoGin: Return updated vote count
 
     GoGin->>Mongo: Record Audit Vote Document (Async)
-    GoGin->>Redis: PUBLISH poll:{id}:updates {pollId, optionId, count}
+    GoGin->>Redis: PUBLISH update to poll channel
     
-    Redis-->>WS: Message on channel poll:{id}:updates
+    Redis-->>WS: Relay Pub/Sub message to Hub
     WS-->>Audience: WebSocket JSON Broadcast
     WS-->>Participant: WebSocket JSON Broadcast
 
