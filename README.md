@@ -52,34 +52,26 @@ The application empowers creators to formulate interactive polls with customized
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Participant as "Voter (Browser A)"
-    actor Audience as "Spectator (Browser B)"
-    participant GoGin as "Go / Gin Backend"
-    participant Redis as "Redis (In-Memory)"
-    participant Mongo as "MongoDB"
-    participant WS as "WebSocket Hub"
+    participant User as Voter Browser
+    participant API as Go Gin Backend
+    participant Redis as Redis
+    participant Mongo as MongoDB
+    participant Hub as WebSocket Hub
+    participant ClientA as Audience Client A
+    participant ClientB as Audience Client B
 
-    Audience->>GoGin: GET /api/polls/poll_id/results (Initial State)
-    GoGin-->>Audience: Return Poll Data and Counts
-    Audience->>WS: Connect WebSocket stream
-    WS->>Redis: Subscribe to poll channel
-
-    Participant->>GoGin: POST /api/polls/poll_id/vote (option_id)
-    Note over GoGin: Validate Poll Status and Option
-    Note over GoGin: Check Duplicate Vote Policy
-
-    GoGin->>Redis: Atomic HINCRBY option count (+1)
-    Redis-->>GoGin: Return updated vote count
-
-    GoGin->>Mongo: Record Audit Vote Document (Async)
-    GoGin->>Redis: PUBLISH update to poll channel
-    
-    Redis-->>WS: Relay Pub/Sub message to Hub
-    WS-->>Audience: WebSocket JSON Broadcast
-    WS-->>Participant: WebSocket JSON Broadcast
-
-    Note over Audience: React updates chart without refresh!
+    User->>API: POST /api/polls/{id}/vote
+    API->>API: Validate vote
+    API->>Redis: HINCRBY poll:{id}:votes optionId 1
+    Redis-->>API: Updated vote count
+    API->>Mongo: Store vote audit
+    Mongo-->>API: Vote stored
+    API->>Redis: PUBLISH poll:{id}:updates
+    Redis-->>Hub: Vote update event
+    Hub-->>ClientA: WebSocket live update
+    Hub-->>ClientB: WebSocket live update
+    ClientA->>ClientA: Update results
+    ClientB->>ClientB: Update results
 ```
 
 ---
