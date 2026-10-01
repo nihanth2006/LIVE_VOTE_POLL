@@ -1,0 +1,6 @@
+{
+  "name": "Live Polling App",
+  "description": "A production-style real-time live polling application using React, Go, MongoDB, and Redis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
